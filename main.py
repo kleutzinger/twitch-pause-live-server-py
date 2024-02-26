@@ -2,12 +2,12 @@ import os
 from datetime import datetime
 
 from dotenv import load_dotenv
-from twitchAPI.twitch import Twitch
-
-
-import asyncio
+from fastapi import FastAPI, Response
+from typing import Optional
 from zoneinfo import ZoneInfo
 
+from twitchAPI.twitch import Twitch
+import asyncio
 from twitchAPI.helper import first, limit
 from twitchAPI.twitch import VideoType
 
@@ -16,13 +16,27 @@ UTC = ZoneInfo("UTC")
 TWITCH_CLIENT_ID = os.getenv("TWITCH_CLIENT_ID", "")
 TWITCH_CLIENT_SECRET = os.getenv("TWITCH_CLIENT_SECRET", "")
 
+app = FastAPI()
+
 
 # given a timestamp, return in seconds how many seconds ago it was from now
 def seconds_ago(timestamp: datetime) -> int:
     return int((datetime.now(tz=UTC) - timestamp).total_seconds())
 
+@app.get("/favicon.ico")
+async def get_favicon():
+    # return 404 for favicon requests
+    # set to 404
+    return Response(status_code=404)
 
-async def get_channel_vod(channel_name: str = "verylocalmelee") -> str:
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
+
+
+@app.get("/{channel_name}")
+async def get_channel_vod(channel_name: str = "verylocalmelee") -> Optional[str]:
+    print(f"Getting VOD for {channel_name}")
     # initialize the twitch instance, this will by default also create a app authentication for you
     twitch = await Twitch(TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET)
     # call the API for the data of your twitch user
@@ -31,7 +45,7 @@ async def get_channel_vod(channel_name: str = "verylocalmelee") -> str:
     # using the first helper makes this easy.
     user = await first(twitch.get_users(logins=[channel_name]))
     if not user:
-        return ""
+        return None
     # print the ID of your user or do whatever else you want with it
     recent_stream = await first(twitch.get_streams(user_id=user.id))
     stream_started_at = recent_stream.started_at
@@ -44,13 +58,8 @@ async def get_channel_vod(channel_name: str = "verylocalmelee") -> str:
     for video in sorted(videos, key=lambda x: stream_started_at - x.created_at):
         sa = seconds_ago(video.created_at)
         url_with_ts = f"{video.url}?t={sa}s"
-        print(video.title, url_with_ts)
         return url_with_ts
-    return ""
-
-
-# run this example
-asyncio.run(get_channel_vod())
+    return None
 
 
 """
