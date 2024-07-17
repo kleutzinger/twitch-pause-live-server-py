@@ -3,6 +3,7 @@ from datetime import datetime
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Response
+from fastapi.responses import HTMLResponse
 from typing import Optional
 from zoneinfo import ZoneInfo
 
@@ -23,18 +24,20 @@ app = FastAPI()
 def seconds_ago(timestamp: datetime) -> int:
     return int((datetime.now(tz=UTC) - timestamp).total_seconds())
 
+
 @app.get("/favicon.ico")
 async def get_favicon():
     # return 404 for favicon requests
     # set to 404
     return Response(status_code=404)
 
+
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
 
 
-@app.get("/{channel_name}")
+@app.get("/{channel_name}", response_class=HTMLResponse)
 async def get_channel_vod(channel_name: str = "verylocalmelee") -> Optional[str]:
     print(f"Getting VOD for {channel_name}")
     # initialize the twitch instance, this will by default also create a app authentication for you
@@ -43,6 +46,7 @@ async def get_channel_vod(channel_name: str = "verylocalmelee") -> Optional[str]
     # this returns a async generator that can be used to iterate over all results
     # but we are just interested in the first result
     # using the first helper makes this easy.
+
     user = await first(twitch.get_users(logins=[channel_name]))
     if not user:
         return None
@@ -58,7 +62,24 @@ async def get_channel_vod(channel_name: str = "verylocalmelee") -> Optional[str]
     for video in sorted(videos, key=lambda x: stream_started_at - x.created_at):
         sa = seconds_ago(video.created_at)
         url_with_ts = f"{video.url}?t={sa}s"
-        return url_with_ts
+        # return html
+        output = f"""
+        <html>
+        <head>
+        <title>{channel_name} VOD</title>
+        </head>
+        <body>
+        <h1>{channel_name} VOD</h1>
+        <p>Video Title: {video.title}</p>
+        <p>Video URL: <a href="{url_with_ts}">{url_with_ts}</a></p>
+        <p>Video Duration: {video.duration}</p>
+        <p>Video View Count: {video.view_count}</p>
+        <p>Video Published At: {video.published_at}</p>
+        <p>Video Created At: {video.created_at}</p>
+        </body>
+        </html>
+        """
+        return output
     return None
 
 
