@@ -60,18 +60,23 @@ async def get_channel_vod(channel_name: str = "verylocalmelee") -> Optional[str]
     ):
         videos.append(recent_video)
     for video in sorted(videos, key=lambda x: stream_started_at - x.created_at):
+        live_channel_url = f"https://www.twitch.tv/{channel_name}"
+        url_no_ts = video.url
         sa = seconds_ago(video.created_at)
         url_with_ts = f"{video.url}?t={sa}s"
         # return html
         output = f"""
         <html>
         <head>
-        <title>{channel_name} VOD</title>
+        <title>{channel_name} VOD {video.title}</title>
         </head>
         <body>
         <h1>{channel_name} VOD</h1>
+        <p>Live Channel URL: <a href="{live_channel_url}">{live_channel_url}</a></p>
+        <br>
         <p>Video Title: {video.title}</p>
-        <p>Video URL: <a href="{url_with_ts}">{url_with_ts}</a></p>
+        <p>Video VOD URL with timestamp: <a href="{url_with_ts}">{url_with_ts}</a></p>
+        <p>Video VOD URL without timestamp: <a href="{url_no_ts}">{url_no_ts}</a></p>
         <p>Video Duration: {video.duration}</p>
         <p>Video View Count: {video.view_count}</p>
         <p>Video Published At: {video.published_at}</p>
