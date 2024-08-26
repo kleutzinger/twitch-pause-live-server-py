@@ -2,13 +2,12 @@ import os
 from datetime import datetime
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Response
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse, FileResponse
 from typing import Optional
 from zoneinfo import ZoneInfo
 
 from twitchAPI.twitch import Twitch
-import asyncio
 from twitchAPI.helper import first, limit
 from twitchAPI.twitch import VideoType
 
@@ -27,9 +26,7 @@ def seconds_ago(timestamp: datetime) -> int:
 
 @app.get("/favicon.ico")
 async def get_favicon():
-    # return 404 for favicon requests
-    # set to 404
-    return Response(status_code=404)
+    return FileResponse("favicon.ico")
 
 
 @app.get("/")
@@ -49,10 +46,12 @@ async def get_channel_vod(channel_name: str = "verylocalmelee") -> Optional[str]
 
     user = await first(twitch.get_users(logins=[channel_name]))
     if not user:
-        return None
+        raise HTTPException(status_code=404, detail="Channel Not Found")
     # print the ID of your user or do whatever else you want with it
-    recent_stream = await first(twitch.get_streams(user_id=user.id))
-    stream_started_at = recent_stream.started_at
+    current_stream = await first(twitch.get_streams(user_id=user.id))
+    if not current_stream:
+        raise HTTPException(status_code=404, detail="No Current Stream Found")
+    stream_started_at = current_stream.started_at
     videos = []
 
     async for recent_video in limit(
@@ -85,7 +84,7 @@ async def get_channel_vod(channel_name: str = "verylocalmelee") -> Optional[str]
         </html>
         """
         return output
-    return None
+    raise HTTPException(status_code=404, detail="Something went wrong. No VODs found.")
 
 
 """
