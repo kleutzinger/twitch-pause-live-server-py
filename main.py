@@ -24,6 +24,13 @@ def seconds_ago(timestamp: datetime) -> int:
     return int((datetime.now(tz=UTC) - timestamp).total_seconds())
 
 
+def sec2hhmmss(seconds: int) -> str:
+    """Convert seconds to hh:mm:ss"""
+    hours, remainder = divmod(seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{hours:02}:{minutes:02}:{seconds:02}"
+
+
 @app.get("/favicon.ico")
 async def get_favicon():
     return FileResponse("favicon.ico")
@@ -76,6 +83,7 @@ async def get_channel_vod(channel_name: str = "verylocalmelee") -> Optional[str]
         <p>Video Title: {video.title}</p>
         <p>Video VOD URL with timestamp: <a href="{url_with_ts}">{url_with_ts}</a></p>
         <p>Video VOD URL without timestamp: <a href="{url_no_ts}">{url_no_ts}</a></p>
+        <p>Titled Timestamp: <a href="{url_with_ts}">{video.title} ({sec2hhmmss(sa)})</a></p>
         <p>Video Duration: {video.duration}</p>
         <p>Video View Count: {video.view_count}</p>
         <p>Video Published At: {video.published_at}</p>
