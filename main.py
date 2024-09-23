@@ -36,6 +36,7 @@ async def get_favicon():
     return FileResponse("favicon.ico")
 
 
+@app.head("/")
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
